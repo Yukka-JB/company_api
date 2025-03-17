@@ -36,7 +36,7 @@ class PracownikController extends Controller
     public function store(Request $request)
     {
         $pracownik = Pracownik::create($request->validate([
-            'firma_id' => 'required|exists:firma,id',
+            'firma_id' => 'required|exists:firmas,id',
             'imie' => 'required|string',
             'nazwisko' => 'required|string',
             'email' => 'required|string',
@@ -78,7 +78,7 @@ class PracownikController extends Controller
     public function update(Request $request, Pracownik $pracownik)
     {
         $pracownik->update($request->validate([
-            'firma_id' => 'sometimes|exists:firma,id',
+            'firma_id' => 'sometimes|exists:firmas,id',
             'imie' => 'sometimes|string',
             'nazwisko' => 'sometimes|string',
             'email' => 'sometimes|string',
