@@ -35,7 +35,7 @@ class FirmaController extends Controller
      */
     public function store(Request $request)
     {
-        $company = Company::create($request->validate([
+        $firma = Firma::create($request->validate([
             'nazwa' => 'required|string',
             'NIP' => 'required|string',
             'adres' => 'required|string',
