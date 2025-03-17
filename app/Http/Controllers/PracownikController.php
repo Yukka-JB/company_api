@@ -14,7 +14,7 @@ class PracownikController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(Pracownik::with('firma')->get());
     }
 
     /**
@@ -35,7 +35,15 @@ class PracownikController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $pracownik = Pracownik::create($request->validate([
+            'firma_id' => 'required|exists:companies,id',
+            'imie' => 'required|string',
+            'nazwisko' => 'required|string',
+            'email' => 'required|string',
+            'numer_telefonu' => 'nullable|string',
+        ]));
+
+        return response()->json($pracownik, 201);
     }
 
     /**
@@ -46,7 +54,7 @@ class PracownikController extends Controller
      */
     public function show(Pracownik $pracownik)
     {
-        //
+        return response()->json($pracownik->load('firma'));
     }
 
     /**
@@ -69,7 +77,15 @@ class PracownikController extends Controller
      */
     public function update(Request $request, Pracownik $pracownik)
     {
-        //
+        $pracownik->update($request->validate([
+            'firma_id' => 'sometimes|exists:companies,id',
+            'imie' => 'sometimes|string',
+            'nazwisko' => 'sometimes|string',
+            'email' => 'sometimes|string',
+            'numer_telefonu' => 'nullable|string',
+        ]));
+
+        return response()->json($pracownik);
     }
 
     /**
@@ -80,6 +96,7 @@ class PracownikController extends Controller
      */
     public function destroy(Pracownik $pracownik)
     {
-        //
+        $pracownik->delete();
+        return response()->json(['message' => 'Pracownik został usunięty']);
     }
 }

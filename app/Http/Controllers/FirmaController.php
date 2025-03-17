@@ -14,7 +14,7 @@ class FirmaController extends Controller
      */
     public function index()
     {
-        //
+        return response()->json(Firma::with('pracownicy')->get());
     }
 
     /**
@@ -35,7 +35,15 @@ class FirmaController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $company = Company::create($request->validate([
+            'nazwa' => 'required|string',
+            'NIP' => 'required|string',
+            'adres' => 'required|string',
+            'miasto' => 'required|string',
+            'kod_pocztowy' => 'required|string',
+        ]));
+
+        return response()->json($company, 201);
     }
 
     /**
@@ -46,7 +54,7 @@ class FirmaController extends Controller
      */
     public function show(Firma $firma)
     {
-        //
+        return response()->json($firma->load('pracownicy'));
     }
 
     /**
@@ -69,7 +77,15 @@ class FirmaController extends Controller
      */
     public function update(Request $request, Firma $firma)
     {
-        //
+        $firma->update($request->validate([
+            'nazwa' => 'required|string',
+            'NIP' => 'required|string',
+            'adres' => 'required|string',
+            'miasto' => 'required|string',
+            'kod_pocztowy' => 'required|string',
+        ]));
+
+        return response()->json($firma);
     }
 
     /**
@@ -80,6 +96,7 @@ class FirmaController extends Controller
      */
     public function destroy(Firma $firma)
     {
-        //
+        $firma->delete();
+        return response()->json(['message' => 'Firma została usunięta']);
     }
 }
