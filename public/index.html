@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="UTF-8" />
   <title>Company Manager</title>
@@ -148,7 +148,8 @@
               </div>
               <div>
                 <button class="btn btn-sm btn-info me-2" data-show-employees-id="${company.id}">Pokaż listę pracowników</button>
-                <button class="btn btn-sm btn-secondary" data-company-id="${company.id}">Dodaj pracownika</button>
+                <button class="btn btn-sm btn-secondary me-2" data-company-id="${company.id}">Dodaj pracownika</button>
+                <button class="btn btn-sm btn-danger" data-delete-company-id="${company.id}">Usuń</button>
               </div>
             </div>
             <div class="employees-container mt-2" data-company-id="${company.id}" style="display:none;"></div>
@@ -194,6 +195,26 @@
             } else {
               container.style.display = 'none';
               button.textContent = 'Pokaż listę pracowników';
+            }
+          });
+        });
+
+        document.querySelectorAll('button[data-delete-company-id]').forEach(button => {
+          button.addEventListener('click', async () => {
+            const companyId = button.getAttribute('data-delete-company-id');
+            if (!confirm('Czy na pewno chcesz usunąć tę firmę wraz z pracownikami?')) return;
+
+            try {
+              const res = await fetch(`${API_URL}/firma/${companyId}`, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+              });
+
+              if (!res.ok) throw new Error('Nie udało się usunąć firmy');
+              fetchCompanies();
+            } catch (error) {
+              alert('Błąd przy usuwaniu firmy');
+              console.error(error);
             }
           });
         });
