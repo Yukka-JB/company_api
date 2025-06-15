@@ -35,13 +35,15 @@ class FirmaController extends Controller
      */
     public function store(Request $request)
     {
-        $firma = Firma::create($request->validate([
-            'nazwa' => 'required|string',
-            'NIP' => 'required|string',
-            'adres' => 'required|string',
-            'miasto' => 'required|string',
-            'kod_pocztowy' => 'required|string',
-        ]));
+        $validated = $request->validate([
+            'nazwa' => 'required|string|max:255',
+            'NIP' => 'required|string|max:20',
+            'adres' => 'required|string|max:255',
+            'miasto' => 'required|string|max:255',
+            'kod_pocztowy' => 'required|string|max:10',
+        ]);
+
+        $company = Firma::create($validated);
 
         return response()->json($company, 201);
     }

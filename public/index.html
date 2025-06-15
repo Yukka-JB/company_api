@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Company Manager</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    .employee-form { margin-top: 10px; }
+    .hidden { display: none; }
+    .employee-list { margin-top: 10px; }
+  </style>
+</head>
+<body class="bg-light p-4">
+  <div class="container">
+    <h1 class="mb-4">Stwórz nową firmę</h1>
+    <form id="companyForm" class="mb-5">
+      <div class="mb-3">
+        <label class="form-label" for="nazwa">Nazwa firmy</label>
+        <input type="text" class="form-control" id="nazwa" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="NIP">Numer Identyfikacji Podatkowej (NIP)</label>
+        <input type="text" class="form-control" id="NIP" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="adres">Adres firmy</label>
+        <input type="text" class="form-control" id="adres" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="miasto">Miasto</label>
+        <input type="text" class="form-control" id="miasto" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="kod_pocztowy">Kod pocztowy</label>
+        <input type="text" class="form-control" id="kod_pocztowy" required />
+      </div>
+      <button type="submit" class="btn btn-primary">Stwórz Firmę</button>
+    </form>
+
+    <div id="companyList">
+      <h2>Lista Firm:</h2>
+      <ul class="list-group" id="companies"></ul>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('companyForm');
+    const companiesList = document.getElementById('companies');
+    const API_URL = 'http://127.0.0.1:8000/api';
+
+    async function fetchEmployees(companyId, container) {
+      try {
+        const res = await fetch(`${API_URL}/pracownik?firma_id=${companyId}`);
+        if (!res.ok) throw new Error('Błąd podczas ładowania pracowników');
+        const employees = await res.json();
+
+        let html;
+        if (employees.length === 0) {
+          html = '<p class="text-muted">Brak pracowników dla tej firmy.</p>';
+        } else {
+          html = '<ul class="list-group employee-list">';
+          employees.forEach(emp => {
+            html += `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  ${emp.imie} ${emp.nazwisko} — ${emp.email}${emp.numer_telefonu ? ' — ' + emp.numer_telefonu : ''}
+                </div>
+                <div>
+                  <button class="btn btn-sm btn-warning me-1" data-edit-id="${emp.id}" data-company-id="${companyId}">Edytuj</button>
+                  <button class="btn btn-sm btn-danger" data-delete-id="${emp.id}" data-company-id="${companyId}">Usuń</button>
+                </div>
+              </li>
+            `;
+          });
+          html += '</ul>';
+        }
+
+        container.innerHTML = html;
+
+        container.querySelectorAll('button[data-delete-id]').forEach(button => {
+          button.addEventListener('click', async () => {
+            const employeeId = button.getAttribute('data-delete-id');
+            const companyId = button.getAttribute('data-company-id');
+            if (!confirm('Czy na pewno chcesz usunąć tego pracownika?')) return;
+
+            try {
+              const res = await fetch(`${API_URL}/pracownik/${employeeId}`, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+              });
+
+              if (!res.ok) throw new Error('Nie udało się usunąć pracownika');
+              fetchEmployees(companyId, container);
+            } catch (error) {
+              alert('Błąd przy usuwaniu pracownika');
+              console.error(error);
+            }
+          });
+        });
+
+        container.querySelectorAll('button[data-edit-id]').forEach(button => {
+          button.addEventListener('click', async () => {
+            const employeeId = button.getAttribute('data-edit-id');
+            const companyId = button.getAttribute('data-company-id');
+
+            try {
+              const res = await fetch(`${API_URL}/pracownik/${employeeId}`);
+              if (!res.ok) throw new Error('Błąd podczas pobierania danych pracownika');
+              const emp = await res.json();
+
+              const form = document.querySelector(`form.employee-form[data-company-id="${companyId}"]`);
+              form.classList.remove('hidden');
+
+              form.querySelector('input[name="imie"]').value = emp.imie;
+              form.querySelector('input[name="nazwisko"]').value = emp.nazwisko;
+              form.querySelector('input[name="email"]').value = emp.email;
+              form.querySelector('input[name="numer_telefonu"]').value = emp.numer_telefonu || '';
+
+              form.setAttribute('data-editing-id', employeeId);
+            } catch (error) {
+              alert('Błąd podczas edycji pracownika');
+              console.error(error);
+            }
+          });
+        });
+
+      } catch (error) {
+        container.innerHTML = '<p class="text-danger">Błąd podczas ładowania pracowników</p>';
+        console.error(error);
+      }
+    }
+
+    async function fetchCompanies() {
+      try {
+        const res = await fetch(`${API_URL}/firma`);
+        if (!res.ok) throw new Error('Błąd podczas ładowania listy firm');
+        const data = await res.json();
+        companiesList.innerHTML = '';
+
+        data.forEach(company => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item';
+
+          li.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${company.nazwa}</strong> — ${company.miasto} (${company.adres}, ${company.kod_pocztowy})
+              </div>
+              <div>
+                <button class="btn btn-sm btn-info me-2" data-show-employees-id="${company.id}">Pokaż listę pracowników</button>
+                <button class="btn btn-sm btn-secondary" data-company-id="${company.id}">Dodaj pracownika</button>
+              </div>
+            </div>
+            <div class="employees-container mt-2" data-company-id="${company.id}" style="display:none;"></div>
+            <form class="employee-form mt-3 hidden" data-company-id="${company.id}">
+              <div class="mb-2">
+                <input type="text" name="imie" class="form-control form-control-sm" placeholder="Imię" required />
+              </div>
+              <div class="mb-2">
+                <input type="text" name="nazwisko" class="form-control form-control-sm" placeholder="Nazwisko" required />
+              </div>
+              <div class="mb-2">
+                <input type="text" name="email" class="form-control form-control-sm" placeholder="Adres E-mail" required />
+              </div>
+              <div class="mb-2">
+                <input type="text" name="numer_telefonu" class="form-control form-control-sm" placeholder="Telefon (opcjonalnie)" />
+              </div>
+              <button type="submit" class="btn btn-sm btn-primary">Zapisz pracownika</button>
+            </form>
+          `;
+
+          companiesList.appendChild(li);
+        });
+
+        document.querySelectorAll('button[data-company-id]').forEach(button => {
+          button.addEventListener('click', () => {
+            const companyId = button.getAttribute('data-company-id');
+            const form = document.querySelector(`form.employee-form[data-company-id="${companyId}"]`);
+            form.reset();
+            form.removeAttribute('data-editing-id');
+            form.classList.toggle('hidden');
+          });
+        });
+
+        document.querySelectorAll('button[data-show-employees-id]').forEach(button => {
+          button.addEventListener('click', () => {
+            const companyId = button.getAttribute('data-show-employees-id');
+            const container = document.querySelector(`.employees-container[data-company-id="${companyId}"]`);
+
+            if (container.style.display === 'none' || container.style.display === '') {
+              fetchEmployees(companyId, container);
+              container.style.display = 'block';
+              button.textContent = 'Ukryj listę pracowników';
+            } else {
+              container.style.display = 'none';
+              button.textContent = 'Pokaż listę pracowników';
+            }
+          });
+        });
+
+        document.querySelectorAll('form.employee-form').forEach(form => {
+          form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const companyId = form.getAttribute('data-company-id');
+            const employeeId = form.getAttribute('data-editing-id');
+            const formData = new FormData(form);
+
+            const data = {
+              imie: formData.get('imie'),
+              nazwisko: formData.get('nazwisko'),
+              email: formData.get('email'),
+              numer_telefonu: formData.get('numer_telefonu'),
+              firma_id: companyId
+            };
+
+            const url = `${API_URL}/pracownik${employeeId ? `/${employeeId}` : ''}`;
+            const method = employeeId ? 'PUT' : 'POST';
+
+            try {
+              const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              if (res.ok) {
+                alert(employeeId ? 'Pracownik zaktualizowany!' : 'Pracownik dodany!');
+                form.reset();
+                form.removeAttribute('data-editing-id');
+                form.classList.add('hidden');
+
+                const container = document.querySelector(`.employees-container[data-company-id="${companyId}"]`);
+                if (container.style.display === 'block') {
+                  fetchEmployees(companyId, container);
+                }
+              } else {
+                alert('Błąd przy zapisie pracownika');
+              }
+            } catch (error) {
+              alert('Błąd przy zapisie pracownika');
+              console.error(error);
+            }
+          });
+        });
+
+      } catch (error) {
+        companiesList.innerHTML = '<li class="list-group-item text-danger">Błąd podczas ładowania firm</li>';
+        console.error(error);
+      }
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const company = {
+        nazwa: document.getElementById('nazwa').value,
+        NIP: document.getElementById('NIP').value,
+        adres: document.getElementById('adres').value,
+        miasto: document.getElementById('miasto').value,
+        kod_pocztowy: document.getElementById('kod_pocztowy').value,
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/firma`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify(company)
+        });
+
+        if (!res.ok) throw new Error('Błąd przy tworzeniu firmy');
+        form.reset();
+        fetchCompanies();
+      } catch (error) {
+        alert('Błąd przy tworzeniu firmy');
+        console.error(error);
+      }
+    });
+
+    fetchCompanies();
+  </script>
+</body>
+</html>

@@ -12,9 +12,15 @@ class PracownikController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Pracownik::with('firma')->get());
+        $firmaId = $request->query('firma_id');
+
+        if ($firmaId) {
+            return Pracownik::where('firma_id', $firmaId)->get();
+        }
+
+        return Pracownik::all();
     }
 
     /**
@@ -35,13 +41,15 @@ class PracownikController extends Controller
      */
     public function store(Request $request)
     {
-        $pracownik = Pracownik::create($request->validate([
+        $validated = $request->validate([
+            'imie' => 'required|string|max:255',
+            'nazwisko' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:pracowniks',
+            'numer_telefonu' => 'nullable|string|max:20',
             'firma_id' => 'required|exists:firmas,id',
-            'imie' => 'required|string',
-            'nazwisko' => 'required|string',
-            'email' => 'required|string',
-            'numer_telefonu' => 'nullable|string',
-        ]));
+        ]);
+
+        $pracownik = Pracownik::create($validated);
 
         return response()->json($pracownik, 201);
     }
