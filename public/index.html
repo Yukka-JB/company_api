@@ -2,7 +2,6 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8" />
-  <title>Company Manager</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     .employee-form { margin-top: 10px; }
@@ -34,7 +33,8 @@
         <label class="form-label" for="kod_pocztowy">Kod pocztowy</label>
         <input type="text" class="form-control" id="kod_pocztowy" required />
       </div>
-      <button type="submit" class="btn btn-primary">Stwórz Firmę</button>
+      <input type="hidden" id="firma_id" />
+      <button type="submit" class="btn btn-primary">Zapisz Firmę</button>
     </form>
 
     <div id="companyList">
@@ -51,7 +51,7 @@
     async function fetchEmployees(companyId, container) {
       try {
         const res = await fetch(`${API_URL}/pracownik?firma_id=${companyId}`);
-        if (!res.ok) throw new Error('Błąd podczas ładowania pracowników');
+        if (!res.ok) throw new Error();
         const employees = await res.json();
 
         let html;
@@ -82,18 +82,15 @@
             const employeeId = button.getAttribute('data-delete-id');
             const companyId = button.getAttribute('data-company-id');
             if (!confirm('Czy na pewno chcesz usunąć tego pracownika?')) return;
-
             try {
               const res = await fetch(`${API_URL}/pracownik/${employeeId}`, {
                 method: 'DELETE',
                 headers: { 'Accept': 'application/json' }
               });
-
-              if (!res.ok) throw new Error('Nie udało się usunąć pracownika');
+              if (!res.ok) throw new Error();
               fetchEmployees(companyId, container);
             } catch (error) {
               alert('Błąd przy usuwaniu pracownika');
-              console.error(error);
             }
           });
         });
@@ -102,45 +99,38 @@
           button.addEventListener('click', async () => {
             const employeeId = button.getAttribute('data-edit-id');
             const companyId = button.getAttribute('data-company-id');
-
             try {
               const res = await fetch(`${API_URL}/pracownik/${employeeId}`);
-              if (!res.ok) throw new Error('Błąd podczas pobierania danych pracownika');
+              if (!res.ok) throw new Error();
               const emp = await res.json();
-
               const form = document.querySelector(`form.employee-form[data-company-id="${companyId}"]`);
               form.classList.remove('hidden');
-
               form.querySelector('input[name="imie"]').value = emp.imie;
               form.querySelector('input[name="nazwisko"]').value = emp.nazwisko;
               form.querySelector('input[name="email"]').value = emp.email;
               form.querySelector('input[name="numer_telefonu"]').value = emp.numer_telefonu || '';
-
               form.setAttribute('data-editing-id', employeeId);
             } catch (error) {
               alert('Błąd podczas edycji pracownika');
-              console.error(error);
             }
           });
         });
 
       } catch (error) {
         container.innerHTML = '<p class="text-danger">Błąd podczas ładowania pracowników</p>';
-        console.error(error);
       }
     }
 
     async function fetchCompanies() {
       try {
         const res = await fetch(`${API_URL}/firma`);
-        if (!res.ok) throw new Error('Błąd podczas ładowania listy firm');
+        if (!res.ok) throw new Error();
         const data = await res.json();
         companiesList.innerHTML = '';
 
         data.forEach(company => {
           const li = document.createElement('li');
           li.className = 'list-group-item';
-
           li.innerHTML = `
             <div class="d-flex justify-content-between align-items-center">
               <div>
@@ -149,6 +139,7 @@
               <div>
                 <button class="btn btn-sm btn-info me-2" data-show-employees-id="${company.id}">Pokaż listę pracowników</button>
                 <button class="btn btn-sm btn-secondary me-2" data-company-id="${company.id}">Dodaj pracownika</button>
+                <button class="btn btn-sm btn-warning me-2" data-edit-company-id="${company.id}">Edytuj</button>
                 <button class="btn btn-sm btn-danger" data-delete-company-id="${company.id}">Usuń</button>
               </div>
             </div>
@@ -169,7 +160,6 @@
               <button type="submit" class="btn btn-sm btn-primary">Zapisz pracownika</button>
             </form>
           `;
-
           companiesList.appendChild(li);
         });
 
@@ -187,7 +177,6 @@
           button.addEventListener('click', () => {
             const companyId = button.getAttribute('data-show-employees-id');
             const container = document.querySelector(`.employees-container[data-company-id="${companyId}"]`);
-
             if (container.style.display === 'none' || container.style.display === '') {
               fetchEmployees(companyId, container);
               container.style.display = 'block';
@@ -203,18 +192,35 @@
           button.addEventListener('click', async () => {
             const companyId = button.getAttribute('data-delete-company-id');
             if (!confirm('Czy na pewno chcesz usunąć tę firmę wraz z pracownikami?')) return;
-
             try {
               const res = await fetch(`${API_URL}/firma/${companyId}`, {
                 method: 'DELETE',
                 headers: { 'Accept': 'application/json' }
               });
-
-              if (!res.ok) throw new Error('Nie udało się usunąć firmy');
+              if (!res.ok) throw new Error();
               fetchCompanies();
             } catch (error) {
               alert('Błąd przy usuwaniu firmy');
-              console.error(error);
+            }
+          });
+        });
+
+        document.querySelectorAll('button[data-edit-company-id]').forEach(button => {
+          button.addEventListener('click', async () => {
+            const companyId = button.getAttribute('data-edit-company-id');
+            try {
+              const res = await fetch(`${API_URL}/firma/${companyId}`);
+              if (!res.ok) throw new Error();
+              const company = await res.json();
+              document.getElementById('firma_id').value = companyId;
+              document.getElementById('nazwa').value = company.nazwa;
+              document.getElementById('NIP').value = company.NIP;
+              document.getElementById('adres').value = company.adres;
+              document.getElementById('miasto').value = company.miasto;
+              document.getElementById('kod_pocztowy').value = company.kod_pocztowy;
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+              alert('Błąd przy edycji firmy');
             }
           });
         });
@@ -225,7 +231,6 @@
             const companyId = form.getAttribute('data-company-id');
             const employeeId = form.getAttribute('data-editing-id');
             const formData = new FormData(form);
-
             const data = {
               imie: formData.get('imie'),
               nazwisko: formData.get('nazwisko'),
@@ -233,10 +238,8 @@
               numer_telefonu: formData.get('numer_telefonu'),
               firma_id: companyId
             };
-
             const url = `${API_URL}/pracownik${employeeId ? `/${employeeId}` : ''}`;
             const method = employeeId ? 'PUT' : 'POST';
-
             try {
               const res = await fetch(url, {
                 method: method,
@@ -248,7 +251,6 @@
                 form.reset();
                 form.removeAttribute('data-editing-id');
                 form.classList.add('hidden');
-
                 const container = document.querySelector(`.employees-container[data-company-id="${companyId}"]`);
                 if (container.style.display === 'block') {
                   fetchEmployees(companyId, container);
@@ -258,20 +260,18 @@
               }
             } catch (error) {
               alert('Błąd przy zapisie pracownika');
-              console.error(error);
             }
           });
         });
 
       } catch (error) {
         companiesList.innerHTML = '<li class="list-group-item text-danger">Błąd podczas ładowania firm</li>';
-        console.error(error);
       }
     }
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
-
+      const companyId = document.getElementById('firma_id').value;
       const company = {
         nazwa: document.getElementById('nazwa').value,
         NIP: document.getElementById('NIP').value,
@@ -279,20 +279,20 @@
         miasto: document.getElementById('miasto').value,
         kod_pocztowy: document.getElementById('kod_pocztowy').value,
       };
-
       try {
-        const res = await fetch(`${API_URL}/firma`, {
-          method: 'POST',
+        const url = `${API_URL}/firma${companyId ? `/${companyId}` : ''}`;
+        const method = companyId ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method: method,
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
           body: JSON.stringify(company)
         });
-
-        if (!res.ok) throw new Error('Błąd przy tworzeniu firmy');
+        if (!res.ok) throw new Error();
         form.reset();
+        document.getElementById('firma_id').value = '';
         fetchCompanies();
       } catch (error) {
-        alert('Błąd przy tworzeniu firmy');
-        console.error(error);
+        alert('Błąd przy zapisie firmy');
       }
     });
 
